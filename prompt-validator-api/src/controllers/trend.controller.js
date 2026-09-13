@@ -31,6 +31,26 @@ async function getTrend(req, res, next) {
 }
 
 /**
+ * Extracts raw image bytes from a stored thumbnail value.
+ *
+ * MongoDB's driver returns binData fields as a BSON `Binary` object, not a
+ * Node `Buffer`. Express' `res.send()` JSON-serializes non-Buffer objects,
+ * which would wrap the image in JSON quotes (a base64 string) instead of
+ * sending raw bytes — breaking every thumbnail. Normalize to a Buffer first.
+ */
+function toImageBuffer(thumbnail) {
+  if (Buffer.isBuffer(thumbnail)) return Buffer.from(thumbnail);
+  if (
+    thumbnail &&
+    Buffer.isBuffer(thumbnail.buffer) &&
+    typeof thumbnail.position === 'number'
+  ) {
+    return Buffer.from(thumbnail.buffer);
+  }
+  return null;
+}
+
+/**
  * Serves the trend thumbnail binary stored in MongoDB (also used by the
  * admin dashboard for draft previews, so it is not restricted to published
  * trends — thumbnails are not sensitive).
@@ -44,9 +64,14 @@ async function getTrendImage(req, res, next) {
       return res.status(404).json({ success: false, message: 'Image not found.' });
     }
 
+    const thumbnail = toImageBuffer(trend.thumbnail);
+    if (!thumbnail) {
+      return res.status(404).json({ success: false, message: 'Image not found.' });
+    }
+
     res.set('Content-Type', trend.thumbnailContentType || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=86400');
-    res.send(trend.thumbnail);
+    res.send(thumbnail);
   } catch (error) {
     next(error);
   }
