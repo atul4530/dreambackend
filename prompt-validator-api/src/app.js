@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const promptRoutes = require('./routes/prompt.routes');
 const trendRoutes = require('./routes/trend.routes');
 const adminTrendRoutes = require('./routes/adminTrend.routes');
+const imageGenRoutes = require('./routes/imageGen.routes');
 
 const errorHandler = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
@@ -35,6 +36,8 @@ app.use(cors({
 // gets a larger body limit. The 10kb parser below skips bodies that have
 // already been parsed (body-parser sets req._body).
 app.use('/api/v1/admin', express.json({ limit: '25mb' }));
+// Public image generation also accepts base64 photos (up to ~12MB).
+app.use('/api/v1/images', express.json({ limit: '25mb' }));
 app.use(express.json({ limit: '10kb' }));
 
 const morganStream = {
@@ -57,14 +60,17 @@ const makeLimiter = (max) => rateLimit({
 const promptLimiter = makeLimiter(parseInt(process.env.RATE_LIMIT_MAX, 10) || 30);
 const trendLimiter = makeLimiter(parseInt(process.env.TREND_RATE_LIMIT_MAX, 10) || 120);
 const adminLimiter = makeLimiter(parseInt(process.env.ADMIN_RATE_LIMIT_MAX, 10) || 60);
+const imageGenLimiter = makeLimiter(parseInt(process.env.IMAGE_RATE_LIMIT_MAX, 10) || 10);
 
 app.use('/api/v1/prompts', promptLimiter);
 app.use('/api/v1/trends', trendLimiter);
 app.use('/api/v1/admin', adminLimiter);
+app.use('/api/v1/images', imageGenLimiter);
 
 app.use('/api/v1/prompts', promptRoutes);
 app.use('/api/v1/trends', trendRoutes);
 app.use('/api/v1/admin/trends', adminTrendRoutes);
+app.use('/api/v1/images', imageGenRoutes);
 
 // Private admin dashboard (static, no framework).
 app.use(express.static(path.join(__dirname, '..', 'public')));
