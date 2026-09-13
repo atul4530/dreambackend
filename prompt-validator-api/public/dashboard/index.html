@@ -67,41 +67,19 @@
           </div>
 
           <div class="field">
-            <label for="f-description">Description</label>
-            <textarea id="f-description" rows="2" maxlength="1000"></textarea>
-          </div>
-
-          <div class="field">
             <label for="f-prompt">Prompt template *</label>
             <textarea id="f-prompt" rows="3" maxlength="4000" required></textarea>
           </div>
 
-          <div class="field">
-            <label for="f-negative">Negative prompt</label>
-            <textarea id="f-negative" rows="2" maxlength="4000"></textarea>
-          </div>
-
-          <div class="row">
-            <div class="field">
-              <label for="f-aspect">Aspect ratio</label>
-              <select id="f-aspect">
-                <option value="1:1">1:1</option>
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="4:5">4:5</option>
-                <option value="3:4">3:4</option>
-              </select>
-            </div>
-            <div class="field checkbox-field">
-              <label class="checkbox-row">
-                <input id="f-requiresPhoto" type="checkbox" checked />
-                <span>Require a user photo</span>
-              </label>
-              <label class="checkbox-row">
-                <input id="f-allowCustomPrompt" type="checkbox" />
-                <span>Allow custom prompt</span>
-              </label>
-            </div>
+          <div class="field checkbox-field">
+            <label class="checkbox-row">
+              <input id="f-requiresPhoto" type="checkbox" checked />
+              <span>Require a user photo</span>
+            </label>
+            <label class="checkbox-row">
+              <input id="f-allowCustomPrompt" type="checkbox" />
+              <span>Allow custom prompt</span>
+            </label>
           </div>
 
           <div class="field">

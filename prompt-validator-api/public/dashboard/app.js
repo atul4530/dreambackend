@@ -18,6 +18,7 @@ const show = (id) => $(id).classList.remove('hidden');
 const hide = (id) => $(id).classList.add('hidden');
 
 let toastTimer = null;
+let saveInFlight = false;
 function toast(message, type = '') {
   const el = $('toast');
   el.textContent = message;
@@ -318,10 +319,7 @@ function openTrendForm(trend = null) {
   $('f-id').value = trend ? trend.id : '';
   $('f-title').value = trend ? trend.title : '';
   $('f-category').value = trend ? trend.category : '';
-  $('f-description').value = trend ? trend.description || '' : '';
   $('f-prompt').value = trend ? trend.prompt : '';
-  $('f-negative').value = trend ? trend.negativePrompt || '' : '';
-  $('f-aspect').value = trend ? trend.aspectRatio || '1:1' : '1:1';
   $('f-requiresPhoto').checked = trend ? trend.requiresPhoto !== false : true;
   $('f-allowCustomPrompt').checked = trend ? trend.allowCustomPrompt === true : false;
   $('f-thumbnailUrl').value = '';
@@ -341,56 +339,61 @@ function closeTrendForm() {
   hide('trend-modal');
 }
 
+function setSaving(active) {
+  saveInFlight = active;
+  const buttons = $('trend-form').querySelectorAll('button');
+  for (const btn of buttons) btn.disabled = active;
+}
+
 async function saveTrend({ publish }) {
+  if (saveInFlight) return;
+  setSaving(true);
   const errorEl = $('trend-form-error');
   errorEl.classList.add('hidden');
 
-  const fileInput = $('f-file');
-  let thumbnailBase64 = null;
-  const file = fileInput.files && fileInput.files[0];
-
-  if (file) {
-    if (file.size > 8 * 1024 * 1024) {
-      errorEl.textContent = 'Image must be 8MB or smaller.';
-      errorEl.classList.remove('hidden');
-      return;
-    }
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      errorEl.textContent = 'Only JPEG, PNG or WebP images are allowed.';
-      errorEl.classList.remove('hidden');
-      return;
-    }
-    try {
-      thumbnailBase64 = await readAsDataURL(file);
-    } catch (_) {
-      errorEl.textContent = 'Could not read the selected image.';
-      errorEl.classList.remove('hidden');
-      return;
-    }
-  }
-
-  const body = {
-    title: $('f-title').value.trim(),
-    description: $('f-description').value.trim(),
-    category: $('f-category').value.trim(),
-    prompt: $('f-prompt').value.trim(),
-    negativePrompt: $('f-negative').value.trim(),
-    aspectRatio: $('f-aspect').value,
-    requiresPhoto: $('f-requiresPhoto').checked,
-    allowCustomPrompt: $('f-allowCustomPrompt').checked,
-    isPublished: publish,
-  };
-
-  if (thumbnailBase64) {
-    body.thumbnailBase64 = thumbnailBase64;
-  } else if ($('f-thumbnailUrl').value.trim()) {
-    body.thumbnailUrl = $('f-thumbnailUrl').value.trim();
-  }
-
-  const id = $('f-id').value;
-
   try {
+    const fileInput = $('f-file');
+    let thumbnailBase64 = null;
+    const file = fileInput.files && fileInput.files[0];
+
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        errorEl.textContent = 'Image must be 8MB or smaller.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowed.includes(file.type)) {
+        errorEl.textContent = 'Only JPEG, PNG or WebP images are allowed.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      try {
+        thumbnailBase64 = await readAsDataURL(file);
+      } catch (_) {
+        errorEl.textContent = 'Could not read the selected image.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+    }
+
+    const body = {
+      title: $('f-title').value.trim(),
+      category: $('f-category').value.trim(),
+      prompt: $('f-prompt').value.trim(),
+      requiresPhoto: $('f-requiresPhoto').checked,
+      allowCustomPrompt: $('f-allowCustomPrompt').checked,
+      isPublished: publish,
+    };
+
+    if (thumbnailBase64) {
+      body.thumbnailBase64 = thumbnailBase64;
+    } else if ($('f-thumbnailUrl').value.trim()) {
+      body.thumbnailUrl = $('f-thumbnailUrl').value.trim();
+    }
+
+    const id = $('f-id').value;
+
     if (id) {
       await updateTrend(id, body);
       toast('Trend updated', 'success');
@@ -403,6 +406,8 @@ async function saveTrend({ publish }) {
   } catch (error) {
     errorEl.textContent = error.message;
     errorEl.classList.remove('hidden');
+  } finally {
+    setSaving(false);
   }
 }
 
